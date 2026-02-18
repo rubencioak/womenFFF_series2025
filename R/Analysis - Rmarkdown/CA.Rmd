@@ -1,0 +1,180 @@
+---
+title: "Collective Agreements"
+author: "Rubén Pérez Sanz"
+date: "2023-06-27"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Descriptives of Collective Agreements in Spain
+
+The main purpose of this document is to have an idea of how collective
+agreements work in Spain.
+
+## Setting
+
+### Load
+
+The libraries that I will need:
+
+```{r load-packages, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(statsr)
+library(readxl)
+library(expss)
+library(stringr)
+library(zoo)
+```
+
+### Define the paths
+
+```{r pahts}
+dell <- 0 
+if (dell == 1) {
+    computer <- "C:/Users/jj22684/"
+} else {
+    computer <- "C:/Users/lenovo/"
+}
+
+setwd(paste0(computer,"Dropbox/PROJECTS/06. CAandfirms/Work/R"))
+Main_path   <- paste(computer, "Dropbox/PROJECTS/06. CAandfirms/Work/R", sep = "")
+built_path    <- paste(computer, "Dropbox/PROJECTS/06. CAandfirms/Work/R/build", sep = "")
+```
+
+### Load the database
+
+```{r load-abrbuthnot-data}
+load(paste(built_path, "/regconfirm_built.R", sep = ""))
+```
+
+
+### Functional Scope: level of coverage of CA within the firm
+
+Most CA apply to the entire firm
+
+```{r Plot funcscope, echo=FALSE}
+REGCON_FIRM2 <- REGCON_FIRM %>% select(c('funcscope'))
+REGCON_FIRM2$funcscope <- str_wrap(REGCON_FIRM2$funcscope, width = 35)
+REGCON_FIRM2 %>% 
+    ggplot(aes(x = funcscope, fill = funcscope)) +
+    geom_bar(show.legend = FALSE) +
+    labs(y = "Frequency", x = "Level of agreement inside the firm") +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+    coord_flip()
+
+REGCON_FIRM2 %>% 
+    group_by(funcscope) %>% 
+    summarise(n = n())
+```
+
+### Date of publication
+
+```{r dtpubli, echo=FALSE}
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('dtpublim','proctype'))
+tsregcon <- REGCON_FIRM2 %>%
+    group_by(dtpublim) %>%
+    summarise(n = n())
+tsregcon <- na.omit(tsregcon)
+ggplot(data = tsregcon, aes(x= dtpublim, y=n)) +
+    geom_line()
+
+tsregcon <- REGCON_FIRM2 %>%
+    group_by(dtpublim,proctype) %>%
+    summarise(n = n())
+tsregcon <- na.omit(tsregcon)
+ggplot(data = tsregcon, aes(x= dtpublim, y=n, group = proctype)) +
+    geom_line(aes(color=proctype)) +
+    scale_color_brewer(palette="Paired")+
+    theme_minimal()
+```
+
+### State of validity
+
+```{r state of validity, echo=FALSE}
+
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('validity','autoextemp','denounce86temp','denounce86val'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$validity <- str_wrap(validity, width = 20)
+ggplot(data = REGCON_FIRM2, aes(x=validity, fill=validity)) +
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Duration validity of a CA
+
+```{r state of duration validity, echo=FALSE}
+
+REGCON_FIRM <- REGCON_FIRM %>% 
+    mutate(durval = dtendval - dtstrval)
+
+REGCON_FIRM2 <- REGCON_FIRM %>%
+    filter(durval<3653)
+    #select(c('durval'))
+    
+
+ggplot(data = REGCON_FIRM2, aes(x=durval)) +
+    geom_histogram(binwidth=12)
+```
+
+### Regional scope
+
+```{r state of personnel, echo=FALSE}
+
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('region'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$personnel <- str_wrap(region, width = 20)
+ggplot(data = REGCON_FIRM2, aes(x=region, fill=region)) +
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+### Personnel scope
+
+```{r state of region, echo=FALSE}
+
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('personnel'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$personnel <- str_wrap(personnel, width = 20)
+ggplot(data = REGCON_FIRM2, aes(x=personnel, fill=personnel)) +
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+### Worker Representation
+
+```{r represent, echo=FALSE}
+
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('represent'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$personnel <- str_wrap(represent, width = 20)
+ggplot(data = REGCON_FIRM2, aes(x=represent, fill=represent)) +
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Denuncement
+
+```{r Denuncement, echo=FALSE}
+
+REGCON_FIRM2 <- REGCON_FIRM %>% 
+    select(c('validity','autoextemp','denounce86temp','denounce86val'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$validity <- str_wrap(autoextemp, width = 20)
+ggplot(data = REGCON_FIRM2, aes(x=autoextemp, fill=autoextemp)) +
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```

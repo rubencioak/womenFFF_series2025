@@ -1,0 +1,308 @@
+---
+title: "Collective Agreements"
+author: "Rubén Pérez Sanz"
+date: "2023-06-27"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+```
+
+# Descriptives of Collective Agreements in Spain
+
+The main purpose of this document is to have an idea of how collective
+agreements work in Spain.
+
+## Setting
+
+### Load libraries
+
+```{r load-packages, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(statsr)
+library(readxl)
+library(expss)
+library(stringr)
+library(zoo)
+```
+
+### Define Theme
+
+```{r theme}
+mytheme <- theme_gray 
+theme_update(
+    plot.title = element_text(
+        family = 'serif',
+        face = 'bold.italic',
+        colour = 'grey25',
+        size = '18'
+    ),
+    axis.title = element_text(
+        family = 'serif',
+        face = 'bold',
+        colour = 'grey25',
+        size = '12'
+    ),
+    axis.text = element_text(
+        family = 'serif',
+        colour = 'grey35',
+        size = '10'
+    ),
+    legend.title = element_text(
+        family = 'serif',
+        colour = 'grey25',
+        face = 'bold',
+        size = '12'
+    ),
+    legend.text = element_text(
+        family = 'serif',
+        colour = 'grey35',
+        size = '10'
+    )
+)
+```
+
+### Define the paths
+
+```{r pahts}
+dell <- 0 
+if (dell == 1) {
+    computer <- "C:/Users/jj22684/"
+} else {
+    computer <- "C:/Users/lenovo/"
+}
+
+setwd(paste0(computer,"Dropbox/WORK/data/REGCON/Codes/FIRM/read"))
+Main_path   <- paste(computer, "Dropbox/WORK/data/REGCON", sep = "")
+raw_path	  <- paste(computer, "Dropbox/WORK/data/REGCON/RAW files", sep = "")
+```
+
+### Load the database
+
+```{r load-abrbuthnot-data}
+load(paste(Main_path, "/Files/FIRM/cleant/regconfirm_cleant.R", sep = ""))
+```
+
+## Filter
+
+### Informed fields
+
+In the database, many obs in the the fields publi_date_temp and
+start_nego_temp are missing, when they are missed usually there rest of
+the variables are not informed. 
+
+* False: observations that are mostly
+informed 
+* True: observation that are not informed 
+
+The fact that there is no information does not mean that there wasn't a collective
+agreement.
+
+```{r filter-data}
+REGCON_FIRM <- REGCON_FIRM %>% 
+    mutate(informed = (!is.na(dtpubli) == 'TRUE')&(!is.na(dtstrnego) == 'TRUE'))
+#val_lab(REGCON_FIRM$informed) = make_labels("1 Yes 0 No")
+REGCON_FIRM %>% group_by(informed)%>%
+    summarise(val = mean(as.numeric(informed)), n = n(), freq = n()/as.numeric(count(REGCON_FIRM)))
+
+#REGCON_FIRM <- REGCON_FIRM %>% 
+    #filter(!is.na(publi_date_temp) == 'TRUE', !is.na(start_nego_temp) == 'TRUE')
+```
+
+### Nature
+
+Most agreements are plain CA at firm level, followed by mediation
+agreements and limited efficacy.
+
+In the second graph it is clear that many observations are not informed because the are: 
+
+* Mediation agreements: they don't need to fill the
+information 
+* Limited efficacy: I need to look further in this
+
+```{r Plot nature vs informed, echo=FALSE}
+REGCON_FIRM2 <- REGCON_FIRM %>% select(c('nature','informed', 'proctype'))
+attach(REGCON_FIRM2)
+REGCON_FIRM2$nature <- str_wrap(nature, width = 35)
+#REGCON_FIRM2 %>% 
+ggplot(data = REGCON_FIRM2,aes(x = nature, fill = nature)) +
+    geom_bar(show.legend = FALSE) +
+    ggtitle("Number of collective agreements by nature") +
+    labs(y = "Frequency", x = "Nature of the agreement") +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+    coord_flip()
+
+ggplot(data = REGCON_FIRM2,aes(x = nature, fill = informed)) +
+    geom_bar(show.legend = TRUE) +
+    ggtitle("Number of collective agreements by nature and informed") +
+    labs(y = "Frequency", x = "Nature of the agreement") +
+    coord_flip()
+
+```
+
+### Procedure type
+
+The graph below shows how many CAs have been negotiated, depending on:
+
+-   New agreement: the firm didn't have a CA and now it has
+-   New text: the firm had a CA in place, and it has been renegotiated
+
+Looking at the first graphs, many agreements are brand new agreements,
+which are mostly not informed/missed.
+
+The second graph divides the type of procedure into the agreement nature.
+It seems that there are lots of new agreements but many of them are
+mediating agreements which are informed in the first place.
+
+In the third graph, we see that it is actually the case.
+
+```{r Plot procedure type, echo=FALSE}
+REGCON_FIRM %>% 
+    ggplot(aes(x = proctype, fill = informed)) +
+    ggtitle("Number of CA by procedure type and informed") +
+    geom_bar(position = "stack") +
+    labs(y = "Frequency", x = "Procedure type")
+
+REGCON_FIRM %>% 
+    ggplot(aes(x = proctype, fill = nature)) +
+    ggtitle("Number of CA by procedure type and nature") +
+    geom_bar(position = "stack") +
+    labs(y = "Frequency", x = "Procedure type")
+
+
+ggplot(data = REGCON_FIRM2,aes(x = nature, fill = proctype)) +
+    geom_bar(show.legend = TRUE) +
+    ggtitle("Number of CA by nature and informed") +
+    labs(y = "Frequency", x = "Nature of the agreement") +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+    coord_flip()
+```
+
+The nature of agreements could be grouped in 4 categories: 
+
+* CA:collective agreements and adherence to CA 
+* MA: mediating agreements, end strike agree.,and arbitration agree., 
+* Limited: CA of limited efficacy, and CA of limited efficacy firm, 
+* And the rest.
+
+Most of the MA, limited and the rest of agreements are 'new aggreements'. In the case of MA makes sense since they are agreements to solve interpretational disputes about CA at a firm level.
+```{r nature vs proctype, echo=FALSE}
+REGCON_FIRM$nature2 <-  case_when(
+        (as.numeric(REGCON_FIRM$nature) == 1 | (as.numeric(REGCON_FIRM$nature) == 2)) ~ 1, 
+        (as.numeric(REGCON_FIRM$nature) == 3 | (as.numeric(REGCON_FIRM$nature) == 4) | (as.numeric(REGCON_FIRM$nature) == 5)) ~ 2,
+        (as.numeric(REGCON_FIRM$nature) == 16 | (as.numeric(REGCON_FIRM$nature) == 17)) ~ 3,
+        (as.numeric(REGCON_FIRM$nature) != c(1,2,3,4,5,16,17)) ~ 4)
+REGCON_FIRM['nature2'] <- lapply(REGCON_FIRM['nature2'], factor)
+REGCON_FIRM$nature2 <- factor(REGCON_FIRM$nature2, levels = c("1","2","3","4"), labels = c("CA", "MA", "Limited CA", "Rest"))
+
+REGCON_FIRM %>%
+    ggplot(aes(x = nature2, fill = proctype)) +
+        ggtitle("Number of CA by groupped nature and procedure type") +
+        geom_bar(show.legend = TRUE) +
+        labs(y = "Frequency", x = "Nature of the agreement") +
+        theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+        coord_flip()
+
+
+```
+
+In the next graph we see that those new aggreements coincide with those that are not informed, which usually happen in agreements that are not CA at a firm level, and I will drop them from the analysis for now.
+
+```{r nature vs informed, echo=FALSE}
+
+REGCON_FIRM %>%
+    ggplot(aes(x = nature2, fill = informed)) +
+        geom_bar(show.legend = TRUE) +
+        ggtitle("Number of CA by groupped nature and informed") +
+        labs(y = "Frequency", x = "Nature of the agreement") +
+        theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+        coord_flip() +
+        scale_fill_brewer(palette="Spectral")
+
+REGCON_FIRM %>% 
+    group_by(nature2) %>% 
+    summarise(n = n())
+
+REGCON_FIRM <- REGCON_FIRM %>%
+    filter(nature2 == "CA")
+
+```
+
+## Descriptives
+
+### State of the agreement
+
+Those that are cancelled by a court ruling should not have validity, and I will drop them.
+
+
+```{r Plot state, echo=FALSE}
+REGCON_FIRM2 <- REGCON_FIRM %>% select(c('state','nature','informed','year'))
+REGCON_FIRM2 %>% 
+    ggplot(aes(x = state, fill = state)) +
+    ggtitle("#CA by groupped nature and state") +
+    geom_bar(show.legend = FALSE) +
+    labs(y = "Frequency", x = "Level of agreement inside the firm") +
+    theme(axis.text.x=element_text(angle = 90, hjust = 0)) +
+    coord_flip()
+
+# For future reference, erase this table below and draw the quantities in the graph above
+REGCON_FIRM2 %>% 
+    group_by(state) %>% 
+    summarise(n = n())
+
+toexclud <- levels(REGCON_FIRM$nature)[3:18]
+table1 <- table(REGCON_FIRM2$nature,REGCON_FIRM2$state,exclude = toexclud)
+    oldnames <- rownames(table1)
+    newnames <- abbreviate(rownames(table1), minlength = 12, use.classes = FALSE, method = "left.kept")
+    rownames(table1)[rownames(table1) == oldnames] = newnames
+    oldnames <- colnames(table1)
+    newnames <- abbreviate(colnames(table1), minlength = 9, use.classes = FALSE, method = "left.kept")
+    colnames(table1)[colnames(table1) == oldnames] = newnames
+table1
+
+table2 <- table(REGCON_FIRM2$informed,REGCON_FIRM$state,exclude = toexclud)
+    oldnames <- rownames(table2)
+    newnames <- abbreviate(rownames(table2), minlength = 12, use.classes = FALSE, method = "left.kept")
+    rownames(table2)[rownames(table2) == oldnames] = newnames
+    oldnames <- colnames(table2)
+    newnames <- abbreviate(colnames(table2), minlength = 9, use.classes = FALSE, method = "left.kept")
+    colnames(table2)[colnames(table2) == oldnames] = newnames
+table2
+
+
+table3 <- table(REGCON_FIRM2$informed,REGCON_FIRM$year,exclude = toexclud)
+    oldnames <- rownames(table2)
+    newnames <- abbreviate(rownames(table2), minlength = 12, use.classes = FALSE, method = "left.kept")
+    rownames(table2)[rownames(table2) == oldnames] = newnames
+    oldnames <- colnames(table2)
+    newnames <- abbreviate(colnames(table2), minlength = 9, use.classes = FALSE, method = "left.kept")
+    colnames(table2)[colnames(table2) == oldnames] = newnames
+table3
+
+REGCON_FIRM <- REGCON_FIRM %>%
+    filter(state != "Cancelled by Court Ruling")
+```
+
+Finally, for those that are not informed are dropped since all the info is missing.
+```{r informed, echo=FALSE}
+ggplot(data = REGCON_FIRM,aes(x = informed, fill = informed)) +
+    geom_bar(show.legend = FALSE) +
+    ggtitle("Number of CA by informed") +
+    labs(y = "Frequency", x = "informed")
+
+REGCON_FIRM %>% group_by(informed)%>%
+    summarise(val = mean(as.numeric(informed)), n = n(), freq = n()/as.numeric(count(REGCON_FIRM)))
+
+REGCON_FIRM <- REGCON_FIRM %>% 
+    filter(informed == TRUE)
+```
+
+In the end we end up with 11469 CA at a firm level.
