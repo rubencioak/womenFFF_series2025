@@ -3,6 +3,7 @@
 Replication files - R
 
 This is what each file does:
+
 	- Analysis - Rmarkdown: Prior analysis to clean the CBA db at a firm level
 	- Append: it appends the firm and sector databases for descriptive purposes
 	- build_firm: it builds the main file that we work with
